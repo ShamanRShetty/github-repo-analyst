@@ -11,6 +11,24 @@ from google.genai import types
 from agent import repo_analyst_agent
 from models import AnalyzeRequest, RepoHealth
 
+from models import DataQuality
+import statistics
+
+async def _build_data_quality(session_data: dict) -> DataQuality:
+    """Pull confidence scores emitted by tools and attach to response."""
+    issues_conf = session_data.get("issues_confidence", 1.0)
+    prs_conf    = session_data.get("prs_confidence", 1.0)
+    commits_conf = session_data.get("commits_confidence", 1.0)
+    notes        = session_data.get("data_notes", [])
+
+    return DataQuality(
+        issues_confidence=issues_conf,
+        prs_confidence=prs_conf,
+        commits_confidence=commits_conf,
+        overall_confidence=round(statistics.mean([issues_conf, prs_conf, commits_conf]), 2),
+        notes=notes
+    )
+
 load_dotenv()
 
 app = FastAPI(title="GitHub Repo Analyst Agent")
@@ -71,14 +89,15 @@ async def analyze_repo(request: AnalyzeRequest):
 
         try:
             parsed = json.loads(clean)
+            parsed.pop("data_quality", None)  # remove if exists
+            data_quality = await _build_data_quality(parsed)
         except json.JSONDecodeError as e:
             raise HTTPException(
                 status_code=500,
                 detail=f"Agent returned malformed JSON: {str(e)}\nRaw (first 500 chars): {clean[:500]}"
             )
 
-        return RepoHealth(repo=request.repo, **parsed)
-
+        return RepoHealth(repo=request.repo,data_quality=data_quality,**parsed)
     except HTTPException:
         raise
     except Exception as e:

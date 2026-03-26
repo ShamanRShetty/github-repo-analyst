@@ -1,14 +1,21 @@
 from google.adk.agents import Agent
 from google.adk.tools import FunctionTool
-from mcp_tools import get_repo_info, get_open_issues, get_open_prs, get_recent_commits
+from mcp_tools import (
+    get_repo_info,
+    get_open_issues,
+    get_open_prs,
+    get_recent_commits,
+    compute_health_metrics,
+)
 from prompts import SYSTEM_PROMPT
 
 # Wrap each async function as an ADK FunctionTool
 tools = [
-    FunctionTool(func=get_repo_info),
-    FunctionTool(func=get_open_issues),
-    FunctionTool(func=get_open_prs),
-    FunctionTool(func=get_recent_commits),
+    FunctionTool(func=compute_health_metrics),  # 1️⃣ scale context first
+    FunctionTool(func=get_repo_info),           # 2️⃣ basic metadata
+    FunctionTool(func=get_recent_commits),      # 3️⃣ activity signal
+    FunctionTool(func=get_open_prs),            # 4️⃣ PR pipeline
+    FunctionTool(func=get_open_issues),         # 5️⃣ issue burden details
 ]
 
 repo_analyst_agent = Agent(
