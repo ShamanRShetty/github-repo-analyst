@@ -168,7 +168,8 @@ SUMMARY WORDING GUIDELINES:
 
     CORRECT patterns:
       "Issue count confidence is reduced (0.75) due to the Search API item cap —
-       only a subset of issues was directly inspectable"
+       only a subset of issues was directly inspectable, so the stale
+       ratio is extrapolated."
       "Pull request draft coverage is limited (0.85) because only the first 100
        of PRs were sampled."
       "Commit confidence is slightly reduced (0.88) due to ISO week boundary
@@ -179,6 +180,8 @@ SUMMARY WORDING GUIDELINES:
       ✗ "due to large queue sizes"         ← queue size is a result, not a cause
       ✗ "moderate data uncertainty exists" ← too vague; always name the metric
       ✗ omitting the numeric value         ← the number MUST appear in parentheses
+      ✗ "only a subset of issues"          ← always write the exact N/total numbers
+      ✗ "only some issues"                 ← always write the exact N/total numbers
 
 ═══════════════════════════════════════════════
 STEP 5 — OUTPUT FORMAT
