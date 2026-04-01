@@ -1,7 +1,17 @@
 import patch          # ← MUST be first: patches json.dumps before ADK loads
 
-import asyncio
+# ── Vertex AI backend initialisation ──────────────────────────────────────────
+# Must happen before any google.adk import so ADK routes all LLM calls
+# through Vertex AI instead of the Gemini API.
 import os
+import vertexai
+
+_PROJECT  = os.environ["GOOGLE_CLOUD_PROJECT"]   # required — set in Cloud Run
+_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+vertexai.init(project=_PROJECT, location=_LOCATION)
+# ──────────────────────────────────────────────────────────────────────────────
+
+import asyncio
 import json
 import statistics
 from fastapi import FastAPI, HTTPException
