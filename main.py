@@ -14,10 +14,17 @@ from google.genai import errors as genai_errors
 from agent import repo_analyst_agent
 from mcp_tools import compute_health_metrics
 from models import AnalyzeRequest, RepoHealth, DataQuality
+from fastapi.responses import HTMLResponse
+
 
 load_dotenv()
 
 app = FastAPI(title="GitHub Repo Analyst Agent")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui():
+    with open("ui.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 session_service = InMemorySessionService()
 runner = Runner(

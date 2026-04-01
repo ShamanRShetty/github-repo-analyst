@@ -20,7 +20,7 @@ tools = [
 
 repo_analyst_agent = Agent(
     name="github_repo_analyst",
-    model="gemini-3-flash-preview",
+    model="gemini-2.0-flash-001",
     description="Analyses a GitHub repository and returns a structured health report.",
     instruction=SYSTEM_PROMPT,
     tools=tools,

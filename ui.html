@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RepoScope — GitHub Repository Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;1,500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #07070e;
+  --bg2:      #0f0f18;
+  --bg3:      #171723;
+  --bg4:      #1f1f2e;
+  --bg5:      #282838;
+  --border:   #252535;
+  --border2:  #32324a;
+  --text:     #eeedf8;
+  --text2:    #9e9dbb;
+  --text3:    #555568;
+  --accent:   #7c6dfa;
+  --accent2:  #a99fff;
+  --glow:     rgba(124,109,250,0.15);
+  --green:    #22c55e;
+  --green-bg: rgba(34,197,94,0.09);
+  --amber:    #f59e0b;
+  --amber-bg: rgba(245,158,11,0.09);
+  --red:      #f43f5e;
+  --red-bg:   rgba(244,63,94,0.09);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --r:  8px;
+  --r2: 16px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 18px;
+  line-height: 1.75;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(124,109,250,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,109,250,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  top: -20%; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 500px;
+  background: radial-gradient(ellipse, rgba(124,109,250,0.06) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+
+.shell { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+main { max-width: 960px; margin: 0 auto; padding: 0 2rem 8rem; width: 100%; flex: 1; }
+
+/* Header */
+header {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(7,7,14,0.82);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  padding: 1.35rem 2.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand-name { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.4px; line-height: 1; }
+.brand-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 3px; }
+.live-chip {
+  font-family: var(--mono); font-size: 11px;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border2); border-radius: 99px; color: var(--text3);
+  display: flex; align-items: center; gap: 7px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  animation: blink 2.5s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* Hero */
+.hero { text-align: center; padding: 5.5rem 0 4rem; }
+.hero-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent2);
+  margin-bottom: 1.5rem;
+}
+.hero-chip::before, .hero-chip::after {
+  content: ''; height: 1px; width: 28px; opacity: 0.5;
+}
+.hero-chip::before { background: linear-gradient(90deg, transparent, var(--accent)); }
+.hero-chip::after  { background: linear-gradient(90deg, var(--accent), transparent); }
+
+.hero-title {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  font-style: italic; font-weight: 400;
+  color: var(--text); line-height: 1.18;
+  margin-bottom: 1.1rem; letter-spacing: -0.02em;
+}
+.hero-title em { color: var(--accent2); }
+
+.hero-desc {
+  font-size: 1.05rem; color: var(--text2);
+  max-width: 480px; margin: 0 auto 3.25rem; line-height: 1.85;
+}
+
+/* Input card */
+.input-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 2.25rem 2.25rem 1.75rem;
+  max-width: 720px; margin: 0 auto;
+  box-shadow: 0 0 0 1px rgba(124,109,250,0.04) inset, 0 10px 56px rgba(0,0,0,0.55);
+  transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.input-card:focus-within {
+  border-color: rgba(124,109,250,0.38);
+  box-shadow:
+    0 0 0 1px rgba(124,109,250,0.08) inset,
+    0 10px 56px rgba(0,0,0,0.55),
+    0 0 48px rgba(124,109,250,0.07);
+}
+
+.field-label {
+  display: block;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 0.7rem;
+}
+.input-row { display: flex; gap: 0.7rem; align-items: stretch; }
+
+.repo-input {
+  flex: 1; min-width: 0;
+  font-family: var(--mono); font-size: 15px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 0.95rem 1.15rem;
+  color: var(--text); outline: none;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.repo-input:focus { border-color: var(--accent); background: var(--bg4); }
+.repo-input::placeholder { color: var(--text3); }
+
+.analyse-btn {
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  padding: 0.95rem 1.9rem;
+  background: linear-gradient(135deg, #7c6dfa 0%, #a08eff 100%);
+  color: #fff; border: none; border-radius: var(--r);
+  cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 0 26px rgba(124,109,250,0.3);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), opacity 0.15s;
+  flex-shrink: 0;
+}
+.analyse-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(124,109,250,0.48);
+}
+.analyse-btn:active:not(:disabled) { transform: translateY(0); }
+.analyse-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+.btn-spin {
+  width: 15px; height: 15px;
+  border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.65s linear infinite;
+  display: none; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Status */
+.status-bar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 1.2rem; min-height: 22px;
+  font-family: var(--mono); font-size: 12px; color: var(--text3);
+  transition: opacity 0.3s;
+}
+.stat-spin {
+  width: 13px; height: 13px;
+  border: 1.5px solid var(--border2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  display: none; flex-shrink: 0;
+}
+
+/* Results container */
+.results {
+  margin-top: 4rem;
+  display: none; opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+.results.visible  { display: block; }
+.results.animated { opacity: 1; transform: none; }
+
+/* Score card */
+.score-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 2.75rem 3rem;
+  margin-bottom: 1.25rem;
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 2.75rem; align-items: center;
+}
+@media (max-width: 660px) {
+  .score-card { grid-template-columns: 1fr; gap: 2rem; text-align: center; }
+  .score-sep  { display: none; }
+}
+
+.ring-wrap { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+.ring-wrap svg { transform: rotate(-90deg); display: block; }
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-num   { font-family: var(--sans); font-size: 2.4rem; font-weight: 800; color: var(--text); line-height: 1; }
+.ring-label { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: .05em; }
+
+.repo-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.45rem; }
+.repo-name    { font-family: var(--serif); font-size: 2rem; font-style: italic; color: var(--text); line-height: 1.2; margin-bottom: 0.65rem; }
+.repo-sum     { font-size: 1rem; color: var(--text2); line-height: 1.85; }
+
+.score-sep { width: 1px; height: 96px; background: var(--border); flex-shrink: 0; }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  padding: 0.6rem 1.25rem; border-radius: 99px; border: 1px solid; white-space: nowrap;
+  transition: all 0.3s var(--ease);
+}
+.badge-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge.healthy    { background: var(--green-bg); border-color: rgba(34,197,94,.3);  color: var(--green); }
+.badge.moderate   { background: var(--amber-bg); border-color: rgba(245,158,11,.3); color: var(--amber); }
+.badge.needs-work { background: var(--red-bg);   border-color: rgba(244,63,94,.3);  color: var(--red);   }
+.badge.at-risk    { background: var(--red-bg);   border-color: rgba(244,63,94,.4);  color: var(--red);   }
+
+/* Stats */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; margin-bottom: 1.25rem;
+}
+@media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 1.65rem 1.65rem 1.5rem;
+  transition: border-color 0.2s, transform 0.22s var(--ease);
+}
+.stat-card:hover { border-color: var(--border2); transform: translateY(-3px); }
+.stat-val { font-family: var(--sans); font-size: 2.2rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 0.5rem; }
+.stat-key { font-family: var(--mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); }
+
+/* Sections */
+.section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 2.25rem 2.25rem 2rem;
+  margin-bottom: 1.25rem;
+}
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.65rem; padding-bottom: 1.1rem; border-bottom: 1px solid var(--border);
+}
+.section-title {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--text3);
+}
+.section-title::before {
+  content: ''; width: 3px; height: 15px;
+  background: linear-gradient(180deg, var(--accent), #b8adff);
+  border-radius: 2px; flex-shrink: 0;
+}
+.section-count {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  padding: 0.2rem 0.65rem; border-radius: 99px; color: var(--text3);
+}
+
+/* Insights */
+.insight-item {
+  display: flex; gap: 1.1rem; align-items: flex-start;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--border);
+}
+.insight-item:first-child { padding-top: 0; }
+.insight-item:last-child  { border-bottom: none; padding-bottom: 0; }
+.insight-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0; margin-top: 2px;
+}
+.insight-text { font-size: 1rem; color: var(--text2); line-height: 1.8; }
+
+/* Recommendations */
+.rec-item {
+  display: flex; gap: 1.1rem; align-items: flex-start;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--border);
+}
+.rec-item:first-child { padding-top: 0; }
+.rec-item:last-child  { border-bottom: none; padding-bottom: 0; }
+.rec-num {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--glow); border: 1px solid rgba(124,109,250,0.22);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 12px; color: var(--accent2);
+  flex-shrink: 0; margin-top: 3px;
+}
+.rec-text { font-size: 1rem; color: var(--text2); line-height: 1.8; }
+.rec-text strong { color: var(--text); font-weight: 600; }
+
+/* Contributors */
+.contrib-wrap { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.contrib-tag {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 13px;
+  padding: 0.5rem 1.1rem;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 99px; color: var(--text2);
+  transition: border-color 0.15s, color 0.15s;
+}
+.contrib-tag:hover { border-color: var(--accent); color: var(--accent2); }
+.contrib-av {
+  width: 19px; height: 19px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #b8adff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+
+/* Data quality */
+.dq-rows { display: flex; flex-direction: column; gap: 1.1rem; }
+.dq-row  { display: flex; align-items: center; gap: 1.25rem; }
+.dq-lbl  { font-family: var(--mono); font-size: 13px; color: var(--text3); width: 135px; flex-shrink: 0; }
+.dq-track { flex: 1; height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.dq-bar  { height: 100%; border-radius: 3px; transition: width 0.85s var(--ease); }
+.dq-bar.hi  { background: linear-gradient(90deg, var(--green),  #4ade80); }
+.dq-bar.mid { background: linear-gradient(90deg, var(--amber),  #fbbf24); }
+.dq-bar.lo  { background: linear-gradient(90deg, var(--red),    #fb7185); }
+.dq-pct  { font-family: var(--mono); font-size: 13px; color: var(--text2); width: 40px; text-align: right; flex-shrink: 0; }
+.dq-notes { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+.dq-note {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-family: var(--mono); font-size: 12px; color: var(--text3);
+  line-height: 1.75; padding: 0.25rem 0;
+}
+.dq-note::before { content: '→'; flex-shrink: 0; }
+
+/* Tooltip */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 9px); left: 50%; transform: translateX(-50%);
+  background: var(--bg5); border: 1px solid var(--border2);
+  font-family: var(--mono); font-size: 11px; color: var(--text2);
+  padding: 0.4rem 0.8rem; border-radius: var(--r);
+  white-space: nowrap; pointer-events: none; z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div>
+      <div class="brand-name">RepoScope</div>
+      <div class="brand-sub">github repository health</div>
+    </div>
+    <div class="live-chip"><span class="live-dot"></span> API live</div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <span class="hero-chip">Repository Analysis</span>
+      <h1 class="hero-title">Understand your repo's<br><em>health at a glance</em></h1>
+      <p class="hero-desc">Surface issues, track activity, and get actionable recommendations for any GitHub repository — instantly.</p>
+
+      <div class="input-card">
+        <label class="field-label" for="repoInput">GitHub Repository</label>
+        <div class="input-row">
+          <input class="repo-input" id="repoInput" type="text"
+            placeholder="owner / repository  · e.g. vercel/next.js"
+            autocomplete="off" spellcheck="false"/>
+          <button class="analyse-btn" id="analyzeBtn" onclick="runAnalysis()">
+            <span class="btn-spin" id="spinner"></span>
+            <span id="btnText">Analyse →</span>
+          </button>
+        </div>
+        <div class="status-bar">
+          <span class="stat-spin" id="statusSpin"></span>
+          <span id="statusText"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+
+      <div class="score-card">
+        <div class="ring-wrap">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--bg4)" stroke-width="9"/>
+            <circle cx="60" cy="60" r="50" fill="none"
+              stroke="url(#rg)" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="314.2" id="scoreArc" stroke-dashoffset="314.2"/>
+            <defs>
+              <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#7c6dfa"/>
+                <stop offset="100%" stop-color="#b8adff"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-num"   id="scoreNum">—</span>
+            <span class="ring-label">/100</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="repo-eyebrow">Repository</div>
+          <div class="repo-name" id="repoTitle"></div>
+          <div class="repo-sum"  id="repoSum"></div>
+        </div>
+
+        <div class="score-sep"></div>
+        <div><span class="badge" id="scoreBadge">—</span></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card" data-tip="Currently open issues">
+          <div class="stat-val" id="sOpenIssues">—</div>
+          <div class="stat-key">Open Issues</div>
+        </div>
+        <div class="stat-card" data-tip="Issues inactive for 30+ days">
+          <div class="stat-val" id="sStaleIssues">—</div>
+          <div class="stat-key">Stale Issues</div>
+        </div>
+        <div class="stat-card" data-tip="Currently open pull requests">
+          <div class="stat-val" id="sOpenPRs">—</div>
+          <div class="stat-key">Open PRs</div>
+        </div>
+        <div class="stat-card" data-tip="Commits in the last 30 days">
+          <div class="stat-val" id="sCommits">—</div>
+          <div class="stat-key">Commits / 30d</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Insights</span>
+          <span class="section-count" id="insightCount"></span>
+        </div>
+        <div id="insightList"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Recommendations</span>
+          <span class="section-count" id="recCount"></span>
+        </div>
+        <div id="recList"></div>
+      </div>
+
+      <div class="section" id="contribSection" style="display:none">
+        <div class="section-head">
+          <span class="section-title">Top Contributors</span>
+        </div>
+        <div class="contrib-wrap" id="contribList"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Data Quality</span>
+        </div>
+        <div class="dq-rows">
+          <div class="dq-row">
+            <span class="dq-lbl">Issues</span>
+            <div class="dq-track"><div class="dq-bar" id="dqIssues" style="width:0"></div></div>
+            <span class="dq-pct" id="dqIssuesPct"></span>
+          </div>
+          <div class="dq-row">
+            <span class="dq-lbl">Pull Requests</span>
+            <div class="dq-track"><div class="dq-bar" id="dqPRs" style="width:0"></div></div>
+            <span class="dq-pct" id="dqPRsPct"></span>
+          </div>
+          <div class="dq-row">
+            <span class="dq-lbl">Commits</span>
+            <div class="dq-track"><div class="dq-bar" id="dqCommits" style="width:0"></div></div>
+            <span class="dq-pct" id="dqCommitsPct"></span>
+          </div>
+        </div>
+        <div class="dq-notes" id="dqNotes"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.getElementById('repoInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runAnalysis();
+});
+
+const STEPS = [
+  [900,   'Fetching repository metadata…'],
+  [2400,  'Computing health metrics…'],
+  [4800,  'Analysing issue backlog…'],
+  [7500,  'Checking commit activity…'],
+  [11500, 'Reviewing PR pipeline…'],
+  [15500, 'Generating health report…'],
+];
+
+function setStatus(msg) {
+  const sp  = document.getElementById('statusSpin');
+  const txt = document.getElementById('statusText');
+  if (msg) { sp.style.display = 'block'; txt.textContent = msg; }
+  else      { sp.style.display = 'none';  txt.textContent = ''; }
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('analyzeBtn');
+  const sp  = document.getElementById('spinner');
+  const bt  = document.getElementById('btnText');
+  btn.disabled     = on;
+  sp.style.display = on ? 'block' : 'none';
+  bt.textContent   = on ? 'Analysing…' : 'Analyse →';
+}
+
+function scoreStyle(s) {
+  if (s >= 80) return { label: 'Healthy',    cls: 'healthy'    };
+  if (s >= 60) return { label: 'Moderate',   cls: 'moderate'   };
+  if (s >= 40) return { label: 'Needs Work', cls: 'needs-work' };
+  return               { label: 'At Risk',   cls: 'at-risk'    };
+}
+
+function animateArc(score) {
+  const c = 314.2;
+  const arc = document.getElementById('scoreArc');
+  requestAnimationFrame(() => {
+    arc.style.transition       = 'stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)';
+    arc.style.strokeDashoffset = c - (score / 100) * c;
+  });
+}
+
+function countUp(el, target, dur) {
+  const t0 = performance.now();
+  const tick = now => {
+    const p = Math.min((now - t0) / dur, 1);
+    el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target);
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function fmt(n) {
+  return n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(n);
+}
+
+function setDQ(barId, pctId, conf) {
+  const pct = Math.round(conf * 100);
+  const bar = document.getElementById(barId);
+  bar.classList.add(conf >= .75 ? 'hi' : conf >= .5 ? 'mid' : 'lo');
+  setTimeout(() => { bar.style.width = pct + '%'; }, 500);
+  document.getElementById(pctId).textContent = pct + '%';
+}
+
+const ICONS = ['📊','🔍','⚡','🔧','📈','💡','🔎','✅','🗂️','🧩'];
+
+async function runAnalysis() {
+  const raw = document.getElementById('repoInput').value.trim();
+  if (!raw || !raw.includes('/')) {
+    const inp = document.getElementById('repoInput');
+    inp.focus();
+    inp.style.transition  = 'border-color 0.15s';
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(() => { inp.style.borderColor = ''; }, 1400);
+    return;
+  }
+
+  const el = document.getElementById('results');
+  el.classList.remove('animated');
+  setTimeout(() => { el.classList.remove('visible'); el.style.display = 'none'; }, 250);
+
+  setLoading(true);
+  setStatus('Fetching repository metadata…');
+
+  const timers = STEPS.map(([ms, msg]) => setTimeout(() => setStatus(msg), ms));
+
+  try {
+    const r = await fetch('/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo: raw }),
+    });
+    timers.forEach(clearTimeout);
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${r.status}`);
+    }
+
+    const d = await r.json();
+    setStatus(''); setLoading(false);
+    renderResult(d);
+
+  } catch (e) {
+    timers.forEach(clearTimeout);
+    setStatus('⚠  ' + (e.message || 'Request failed — check the repository name.'));
+    setLoading(false);
+  }
+}
+
+function renderResult(d) {
+  const score = d.health_score;
+  const style = scoreStyle(score);
+
+  document.getElementById('scoreNum').textContent = '—';
+  animateArc(score);
+  setTimeout(() => countUp(document.getElementById('scoreNum'), score, 950), 120);
+
+  const b = document.getElementById('scoreBadge');
+  b.innerHTML = `<span class="badge-dot"></span>${style.label}`;
+  b.className = 'badge ' + style.cls;
+
+  document.getElementById('repoTitle').textContent = d.repo;
+  document.getElementById('repoSum').textContent   = d.summary;
+
+  [['sOpenIssues', d.open_issues], ['sStaleIssues', d.stale_issues],
+   ['sOpenPRs', d.open_prs],       ['sCommits', d.recent_commits]
+  ].forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    val >= 50 ? countUp(el, val, 800) : (el.textContent = fmt(val));
+  });
+
+  const iList = document.getElementById('insightList');
+  iList.innerHTML = '';
+  const insights = d.insights || [];
+  document.getElementById('insightCount').textContent = insights.length;
+  insights.forEach((txt, i) => {
+    const row = document.createElement('div');
+    row.className = 'insight-item';
+    row.innerHTML = `<span class="insight-icon">${ICONS[i % ICONS.length]}</span><span class="insight-text">${txt}</span>`;
+    iList.appendChild(row);
+  });
+
+  const rList = document.getElementById('recList');
+  rList.innerHTML = '';
+  const recs = d.recommendations || [];
+  document.getElementById('recCount').textContent = recs.length;
+  recs.forEach((txt, i) => {
+    const row = document.createElement('div');
+    row.className = 'rec-item';
+    row.innerHTML = `<span class="rec-num">${i + 1}</span><span class="rec-text">${txt}</span>`;
+    rList.appendChild(row);
+  });
+
+  const contribs = d.top_contributors || [];
+  const cs = document.getElementById('contribSection');
+  cs.style.display = contribs.length ? 'block' : 'none';
+  if (contribs.length) {
+    const cl = document.getElementById('contribList');
+    cl.innerHTML = '';
+    contribs.forEach(c => {
+      const tag = document.createElement('span');
+      tag.className = 'contrib-tag';
+      tag.innerHTML = `<span class="contrib-av">${c[0].toUpperCase()}</span>@${c}`;
+      cl.appendChild(tag);
+    });
+  }
+
+  if (d.data_quality) {
+    const dq = d.data_quality;
+    setDQ('dqIssues',  'dqIssuesPct',  dq.issues_confidence);
+    setDQ('dqPRs',     'dqPRsPct',     dq.prs_confidence);
+    setDQ('dqCommits', 'dqCommitsPct', dq.commits_confidence);
+    const notesEl = document.getElementById('dqNotes');
+    notesEl.innerHTML = '';
+    (dq.notes || []).forEach(n => {
+      const p = document.createElement('p');
+      p.className = 'dq-note';
+      p.textContent = n;
+      notesEl.appendChild(p);
+    });
+  }
+
+  const res = document.getElementById('results');
+  res.style.display = 'block';
+  res.classList.add('visible');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    res.classList.add('animated');
+    res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+}
+</script>
+</body>
+</html>
